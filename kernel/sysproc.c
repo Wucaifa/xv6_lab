@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -94,4 +95,32 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// Trace system calls
+uint64
+sys_trace(void)
+{
+  int mask;
+  if(argint(0, &mask) < 0)
+    return -1;
+  myproc()->trace_mask = mask;
+  return 0;
+}
+  
+uint64
+sys_sysinfo(void)
+{
+  struct sysinfo info;
+  sysinfo_freebytes(&info.freemem);
+  sysinfo_procnum(&info.nproc);
+
+  uint64 dstaddr;   // 虚拟地址
+  argaddr(0, &dstaddr);
+
+  // 内核地址空间中的数据结构需要复制到用户空间
+  if (copyout(myproc()->pagetable, dstaddr, (char *)&info, sizeof(info)) >= 0) {
+    return -1;  // 如果复制失败，返回错误
+  }
+  return 0;
 }

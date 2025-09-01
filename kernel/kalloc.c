@@ -80,3 +80,17 @@ kalloc(void)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+
+// 空闲链表记录空闲物理内存页
+void sysinfo_freebytes(uint64* dst)
+{
+  *dst = 0;
+  struct run *r = kmem.freelist;
+
+  acquire(&kmem.lock);
+  while (r) {
+    *dst += PGSIZE;
+    r = r->next;
+  }
+  release(&kmem.lock);
+}
